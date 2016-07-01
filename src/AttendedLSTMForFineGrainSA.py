@@ -45,16 +45,15 @@ class AttendedLSTM(object):
                                            outer_output_dim=self.output_dim,
                                            random_state=self.random_state, layer_id="_0")
 
-        """
+
         self.layers[1] = AttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
-                                           output_dim=3,
+                                           output_dim=6,
                                            outer_output_dim=1,
                                            random_state=self.random_state, layer_id="_0")
 
-        """
-        self.averaged_output =  T.mean(self.layers[0].output,axis=0)
-        # T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
+
+        self.averaged_output =  T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
 
 
         output =  self.averaged_output #T.nnet.softmax(self.O.dot(self.averaged_output))[0]
@@ -64,6 +63,8 @@ class AttendedLSTM(object):
 
         params += self.layers[0].params
         params += self.layers[0].output_params
+        params += self.layers[1].params
+        params += self.layers[1].output_params
 
         #params += self.layers[1].params
         #params += self.layers[1].output_params
@@ -637,4 +638,4 @@ class AttendedLSTM(object):
 
 
 if __name__ == '__main__':
-    AttendedLSTM.train_finegrained_glove_wordembedding(300, "finetest_model.txt")
+    AttendedLSTM.train_finegrained_glove_wordembedding(100, "finetest_model.txt")
