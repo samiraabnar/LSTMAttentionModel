@@ -11,7 +11,7 @@ import sys
 sys.path.append('../../')
 
 from LSTM.src.WordEmbeddingLayer import *
-from LSTMAttentionModel.src.AttendedLSTMLayer import *
+from LSTMAttentionModel.src.TiedWeightsAttendedLSTMLayer import *
 
 from Util.util.data.DataPrep import *
 from Util.util.file.FileUtil import *
@@ -19,7 +19,7 @@ from Util.util.nnet.LearningAlgorithms import *
 from six.moves import cPickle
 
 
-class AttendedLSTMForFineGrainSA(object):
+class TiedWeightAttendedLSTM(object):
     def __init__(self, input_dim, output_dim, number_of_layers=1, hidden_dims=[100], dropout_p=0.0, learning_rate=0.1):
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -39,21 +39,21 @@ class AttendedLSTMForFineGrainSA(object):
         params = []
 
 
-        self.layers[0] = AttendedLSTMLayer(input=x,
+        self.layers[0] = TiedWeightsAttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
                                            output_dim=self.hidden_dims[0],
                                            outer_output_dim=self.output_dim,
                                            random_state=self.random_state, layer_id="_0")
 
-
-        self.layers[1] = AttendedLSTMLayer(input=x,
+        self.layers[1] = TiedWeightsAttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
                                            output_dim=6,
                                            outer_output_dim=1,
-                                           random_state=self.random_state, layer_id="_0")
+                                           random_state=self.random_state, layer_id="_1")
 
-
-        self.averaged_output =  T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
+        self.averaged_output = T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
+        #T.mean(self.layers[0].output,axis=0)
+        # T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
 
 
         output =  self.averaged_output #T.nnet.softmax(self.O.dot(self.averaged_output))[0]
@@ -63,11 +63,9 @@ class AttendedLSTMForFineGrainSA(object):
 
         params += self.layers[0].params
         params += self.layers[0].output_params
+
         params += self.layers[1].params
         params += self.layers[1].output_params
-
-        #params += self.layers[1].params
-        #params += self.layers[1].output_params
 
         L2 = np.sqrt(sum([ T.sum(param ** 2) for param in params]))
 
@@ -153,6 +151,49 @@ class AttendedLSTMForFineGrainSA(object):
         print(accuracy)
 
     @staticmethod
+    def train_1layer_glove_wordembedding(hidden_dim, modelfile):
+        train = {}
+        test = {}
+        dev = {}
+
+        embedded_train, train_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="train",
+                                                                             representation="glove.840B.300d")
+        embedded_dev, dev_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="dev",
+                                                                         representation="glove.840B.300d")
+        embedded_test, test_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="test",
+                                                                           representation="glove.840B.300d")
+
+        binary_embedded_train = []
+        binary_train_labels = []
+        for i in np.arange(len(embedded_train)):
+            if np.argmax(train_labels[i]) != 1:
+                binary_embedded_train.append(embedded_train[i])
+                binary_train_labels.append(np.eye(2)[np.argmax(train_labels[i]) // 2])
+
+        binary_embedded_test = []
+        binary_test_labels = []
+        for i in np.arange(len(embedded_test)):
+            if np.argmax(test_labels[i]) != 1:
+                binary_embedded_test.append(embedded_test[i])
+                binary_test_labels.append(np.eye(2)[np.argmax(test_labels[i]) // 2])
+
+        # train_labels = [np.asarray([(np.argmax(tl) + 1.00) / 3.0]) for tl in train_labels]
+        # dev_labels = [np.asarray([(np.argmax(dl) + 1.00) / 3.0]) for dl in dev_labels]
+        # embedded_train, train_labels, word_to_index, index_to_word, labels_count = DataPrep.load_one_hot_sentiment_data("../data/sentiment/trainsentence_and_label_binary.txt")
+        # embedded_dev, dev_labels= DataPrep.load_one_hot_sentiment_data_traind_vocabulary("../data/sentiment/devsentence_and_label_binary.txt",word_to_index,index_to_word,labels_count)
+        # self.test["sentences"], self.test["sentiments"]= DataPrep.load_one_hot_sentiment_data_traind_vocabulary("../../data/sentiment/testsentence_and_label_binary.txt",self.word_to_index, self.index_to_word,self.labels_count)
+
+
+        flstm = TiedWeightAttendedLSTM(input_dim=len(binary_embedded_train[0][0]), output_dim=2, number_of_layers=1,
+                                   hidden_dims=[hidden_dim], dropout_p=0.25, learning_rate=0.01)
+        flstm.build_model()
+
+        # train_labels[train_labels == 0] = -1
+        # dev_labels[dev_labels == 0] = -1
+        flstm.train(binary_embedded_train, binary_train_labels, binary_embedded_test, binary_test_labels)
+        flstm.save_model(modelfile)
+
+    @staticmethod
     def train_finegrained_glove_wordembedding(hidden_dim, modelfile):
         train = {}
         test = {}
@@ -188,8 +229,8 @@ class AttendedLSTMForFineGrainSA(object):
         # self.test["sentences"], self.test["sentiments"]= DataPrep.load_one_hot_sentiment_data_traind_vocabulary("../../data/sentiment/testsentence_and_label_binary.txt",self.word_to_index, self.index_to_word,self.labels_count)
 
 
-        flstm = AttendedLSTMForFineGrainSA(input_dim=len(embedded_train[0][0]), output_dim=5, number_of_layers=1,
-                             hidden_dims=[hidden_dim], dropout_p=0.5, learning_rate=0.01)
+        flstm = TiedWeightAttendedLSTM(input_dim=len(embedded_train[0][0]), output_dim=5, number_of_layers=1,
+                             hidden_dims=[hidden_dim], dropout_p=0.25, learning_rate=0.01)
         flstm.build_model()
 
         # train_labels[train_labels == 0] = -1
@@ -638,4 +679,5 @@ class AttendedLSTMForFineGrainSA(object):
 
 
 if __name__ == '__main__':
-    AttendedLSTMForFineGrainSA.train_finegrained_glove_wordembedding(100, "finetest_model.txt")
+    #AttendedLSTM.train_finegrained_glove_wordembedding(300, "finetest_model.txt")
+    TiedWeightAttendedLSTM.train_1layer_glove_wordembedding(300, "test_model_tiedweights.txt")
