@@ -47,7 +47,7 @@ class TiedWeightAttendedLSTM(object):
 
         self.layers[1] = TiedWeightsAttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
-                                           output_dim=6,
+                                           output_dim=300,
                                            outer_output_dim=1,
                                            random_state=self.random_state, layer_id="_1")
 
