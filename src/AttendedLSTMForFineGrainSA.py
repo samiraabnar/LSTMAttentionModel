@@ -11,7 +11,7 @@ import sys
 sys.path.append('../../')
 
 from LSTM.src.WordEmbeddingLayer import *
-from LSTMAttentionModel.src.AttendedLSTMLayer import *
+from LSTMAttentionModel.src.TiedWeightsAttendedLSTMLayer import *
 
 from Util.util.data.DataPrep import *
 from Util.util.file.FileUtil import *
@@ -39,14 +39,14 @@ class AttendedLSTMForFineGrainSA(object):
         params = []
 
 
-        self.layers[0] = AttendedLSTMLayer(input=x,
+        self.layers[0] = TiedWeightsAttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
                                            output_dim=self.hidden_dims[0],
                                            outer_output_dim=self.output_dim,
                                            random_state=self.random_state, layer_id="_0")
 
 
-        self.layers[1] = AttendedLSTMLayer(input=x,
+        self.layers[1] = TiedWeightsAttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
                                            output_dim=6,
                                            outer_output_dim=1,
@@ -638,4 +638,4 @@ class AttendedLSTMForFineGrainSA(object):
 
 
 if __name__ == '__main__':
-    AttendedLSTMForFineGrainSA.train_finegrained_glove_wordembedding(100, "finetest_model.txt")
+    AttendedLSTMForFineGrainSA.train_finegrained_glove_wordembedding(300, "finetest_tied_model.txt")
