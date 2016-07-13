@@ -100,8 +100,8 @@
       <file leaf-file-name="ThreeLayerTiedWeightsAttendedLSTMLayer.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/ThreeLayerTiedWeightsAttendedLSTMLayer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="64" column="28" selection-start-line="64" selection-start-column="28" selection-end-line="64" selection-end-column="28" />
+            <state relative-caret-position="195">
+              <caret line="53" column="39" selection-start-line="53" selection-start-column="39" selection-end-line="53" selection-end-column="39" />
               <folding />
             </state>
           </provider>
@@ -568,8 +568,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/ThreeLayerTiedWeightsAttendedLSTMLayer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="64" column="28" selection-start-line="64" selection-start-column="28" selection-end-line="64" selection-end-column="28" />
+        <state relative-caret-position="195">
+          <caret line="53" column="39" selection-start-line="53" selection-start-column="39" selection-end-line="53" selection-end-column="39" />
           <folding />
         </state>
       </provider>

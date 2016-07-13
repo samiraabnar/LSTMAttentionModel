@@ -51,7 +51,7 @@ class ThreeLayerTiedWeightsAttendedLSTMLayer(object):
 
             o = T.nnet.sigmoid(T.dot(self.O_w,s3)+self.O_bias)
 
-            return [o,s1,c,s2,c2,input_gate, forget_gate, output_gate]
+            return [o,s1,c,s2,c2,s3,c3,input_gate, forget_gate, output_gate]
 
         [self.output,self.hidden_state,self.memory_content,self.hidden_state_2,self.memory_content_2,self.hidden_state_3,self.memory_content_3,self.input_gate, self.forget_gate,
          self.output_gate] , updates = theano.scan(
