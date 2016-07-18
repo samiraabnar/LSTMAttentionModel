@@ -31,6 +31,20 @@ class AttendedLSTM(object):
 
         self.layers = {}
 
+    def build_loaded_model(self, layers):
+        self.layers = layers
+
+
+
+
+        self.averaged_output = T.dot(self.layers[1].output.T, self.layers[0].output) / T.sum(self.layers[1].output)
+
+        self.predict = theano.function([self.layers[0].input], self.averaged_output)
+        self.get_embeding = theano.function([self.layers[0].input], self.layers[0].hidden_state_2)
+        self.get_attention = theano.function([self.layers[0].input], self.layers[1].output)
+
+
+
     def build_model(self):
         x = T.matrix('x').astype(theano.config.floatX)
         next_x = T.matrix('n_x').astype(theano.config.floatX)
@@ -45,16 +59,17 @@ class AttendedLSTM(object):
                                            outer_output_dim=self.output_dim,
                                            random_state=self.random_state, layer_id="_0")
 
-        """
+
         self.layers[1] = AttendedLSTMLayer(input=x,
                                            input_dim=self.input_dim,
-                                           output_dim=3,
+                                           output_dim=6,
                                            outer_output_dim=1,
                                            random_state=self.random_state, layer_id="_0")
 
-        """
-        self.averaged_output =  T.mean(self.layers[0].output,axis=0)
-        # T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
+
+        self.averaged_output = \
+            T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
+        #T.mean(self.layers[0].output,axis=0)
 
 
         output =  self.averaged_output #T.nnet.softmax(self.O.dot(self.averaged_output))[0]
@@ -65,8 +80,8 @@ class AttendedLSTM(object):
         params += self.layers[0].params
         params += self.layers[0].output_params
 
-        #params += self.layers[1].params
-        #params += self.layers[1].output_params
+        params += self.layers[1].params
+        params += self.layers[1].output_params
 
         L2 = np.sqrt(sum([ T.sum(param ** 2) for param in params]))
 
@@ -85,7 +100,7 @@ class AttendedLSTM(object):
         self.get_visualization_values = theano.function([x],
                                                         [self.layers[0].output[-1], self.layers[0].hidden_state[-1]])
 
-    def train(self, X_train, y_train, X_dev, y_dev, nepoch=30):
+    def train(self, X_train, y_train, X_dev, y_dev, nepoch=5):
         # X_train = X_train[0:1]
         # y_train = y_train[0:1]
         for epoch in range(nepoch):
@@ -679,6 +694,8 @@ class AttendedLSTM(object):
             flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
 
 
+
+
 if __name__ == '__main__':
     #AttendedLSTM.train_finegrained_glove_wordembedding(300, "finetest_model.txt")
-    AttendedLSTM.train_1layer_glove_wordembedding(300, "test_model_attentionLess.txt")
+    AttendedLSTM.train_1layer_glove_wordembedding(300, "test_model_attended_300.txt")

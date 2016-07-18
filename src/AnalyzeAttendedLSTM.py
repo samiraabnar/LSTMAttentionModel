@@ -5,6 +5,9 @@ import theano.tensor as T
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.manifold import TSNE
+from sklearn import manifold
+
 
 import sys
 
@@ -12,6 +15,8 @@ sys.path.append('../../')
 
 from LSTM.src.WordEmbeddingLayer import *
 from LSTMAttentionModel.src.AttendedLSTMLayer import *
+from LSTMAttentionModel.src.AttendedLSTM import *
+
 
 from Util.util.data.DataPrep import *
 from Util.util.file.FileUtil import *
@@ -20,7 +25,7 @@ from six.moves import cPickle
 
 
 class AnalyzeAttendedLSTM(object):
-    def __init__(self, input_dim, output_dim, number_of_layers=1, hidden_dims=[100], dropout_p=0.0, learning_rate=0.1):
+    def __init__(self, input_dim, output_dim, number_of_layers=1, hidden_dims=[300], dropout_p=0.0, learning_rate=0.1):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.number_of_layers = number_of_layers
@@ -31,59 +36,51 @@ class AnalyzeAttendedLSTM(object):
 
         self.layers = {}
 
-    def build_model(self):
+    def build_loaded_model(self,layers):
         x = T.matrix('x').astype(theano.config.floatX)
-        next_x = T.matrix('n_x').astype(theano.config.floatX)
-        y = T.imatrix('y')
-        dists = T.ivector('d')
-        params = []
-
-
+        self.layers = {}
         self.layers[0] = AttendedLSTMLayer(input=x,
-                                           input_dim=self.input_dim,
-                                           output_dim=self.hidden_dims[0],
-                                           outer_output_dim=self.output_dim,
-                                           random_state=self.random_state, layer_id="_0")
+                                           input_dim=layers[0].input_dim,
+                                           output_dim=layers[0].output_dim,
+                                           outer_output_dim=layers[0].outer_output_dim,
+                                           random_state=layers[0].random_state, layer_id=layers[0].layer_id)
 
-        """
         self.layers[1] = AttendedLSTMLayer(input=x,
-                                           input_dim=self.input_dim,
-                                           output_dim=3,
-                                           outer_output_dim=1,
-                                           random_state=self.random_state, layer_id="_0")
+                                           input_dim=layers[1].input_dim,
+                                           output_dim=layers[1].output_dim,
+                                           outer_output_dim=layers[1].outer_output_dim,
+                                           random_state=layers[1].random_state, layer_id=layers[1].layer_id)
 
-        """
-        self.averaged_output =  T.mean(self.layers[0].output,axis=0)
-        # T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
+        self.layers[0].U_input, self.layers[0].U_forget, self.layers[0].U_output, self.layers[0].W_input, self.layers[0].W_forget, self.layers[0].W_output,\
+        self.layers[0].bias_input, self.layers[0].bias_forget, self.layers[0].bias_output, self.layers[0].U, self.layers[0].W, self.layers[0].bias,\
+        self.layers[0].U_input_2, self.layers[0].U_forget_2, self.layers[0].U_output_2, self.layers[0].W_input_2, self.layers[0].W_forget_2, self.layers[0].W_output_2,\
+        self.layers[0].bias_input_2, self.layers[0].bias_forget_2, self.layers[0].bias_output_2, self.layers[0].U_2, self.layers[0].W_2, self.layers[0].bias_2,\
+        self.layers[0].O_w, self.layers[0].O_bias = layers[0].U_input, layers[0].U_forget, layers[0].U_output, layers[0].W_input, layers[0].W_forget, layers[0].W_output,\
+        layers[0].bias_input, layers[0].bias_forget, layers[0].bias_output, layers[0].U, layers[0].W, layers[0].bias,\
+        layers[0].U_input_2, layers[0].U_forget_2, layers[0].U_output_2, layers[0].W_input_2, layers[0].W_forget_2, layers[0].W_output_2,\
+        layers[0].bias_input_2, layers[0].bias_forget_2, layers[0].bias_output_2, layers[0].U_2, layers[0].W_2, layers[0].bias_2,\
+        layers[0].O_w, layers[0].O_bias
+
+        self.layers[1].U_input, self.layers[1].U_forget, self.layers[1].U_output, self.layers[1].W_input, self.layers[1].W_forget, self.layers[1].W_output, \
+        self.layers[1].bias_input, self.layers[1].bias_forget, self.layers[1].bias_output, self.layers[1].U, \
+        self.layers[1].W, self.layers[1].bias, \
+        self.layers[1].U_input_2, self.layers[1].U_forget_2, self.layers[1].U_output_2, self.layers[1].W_input_2, \
+        self.layers[1].W_forget_2, self.layers[1].W_output_2, \
+        self.layers[1].bias_input_2, self.layers[1].bias_forget_2, self.layers[1].bias_output_2, self.layers[1].U_2, \
+        self.layers[1].W_2, self.layers[1].bias_2, \
+        self.layers[1].O_w, self.layers[1].O_bias = layers[1].U_input, layers[1].U_forget, layers[1].U_output, layers[1].W_input, layers[1].W_forget, layers[1].W_output, \
+                                                    layers[1].bias_input, layers[1].bias_forget, layers[1].bias_output, \
+                                                    layers[1].U, layers[1].W, layers[1].bias, \
+                                                    layers[1].U_input_2, layers[1].U_forget_2, layers[1].U_output_2, \
+                                                    layers[1].W_input_2, layers[1].W_forget_2, layers[1].W_output_2, \
+                                                    layers[1].bias_input_2, layers[1].bias_forget_2, layers[1].bias_output_2, layers[1].U_2, layers[1].W_2, layers[1].bias_2, \
+                                                    layers[0].O_w, layers[1].O_bias
 
 
-        output =  self.averaged_output #T.nnet.softmax(self.O.dot(self.averaged_output))[0]
+        self.averaged_output =  T.dot(self.layers[1].output.T,self.layers[0].output) / T.sum(self.layers[1].output)
 
-
-
-
-        params += self.layers[0].params
-        params += self.layers[0].output_params
-
-        #params += self.layers[1].params
-        #params += self.layers[1].output_params
-
-        L2 = np.sqrt(sum([ T.sum(param ** 2) for param in params]))
-
-        #cost = T.sum((T.sum(T.nnet.binary_crossentropy((self.layers[0].output + 0.0000001), y),
-        #                    axis=1) / dists) )  # T.erf(error1) # T.erf(error1) + + L1 + L2
-
-        cost = T.sum(T.nnet.binary_crossentropy(output+0.0000001,y[-1])) + 0.0001*L2
-        updates = LearningAlgorithms.adam(
-            cost, params, lr=self.learning_rate
-        )
-
-        self.sgd_step = theano.function([x, y], cost, updates=updates)
         self.predict = theano.function([x], self.averaged_output)
 
-        self.test_model = theano.function([x, y], cost)
-        self.get_visualization_values = theano.function([x],
-                                                        [self.layers[0].output[-1], self.layers[0].hidden_state[-1]])
 
     def train(self, X_train, y_train, X_dev, y_dev, nepoch=30):
         # X_train = X_train[0:1]
@@ -194,50 +191,6 @@ class AnalyzeAttendedLSTM(object):
         flstm.train(binary_embedded_train, binary_train_labels, binary_embedded_test, binary_test_labels)
         flstm.save_model(modelfile)
 
-    @staticmethod
-    def train_finegrained_glove_wordembedding(hidden_dim, modelfile):
-        train = {}
-        test = {}
-        dev = {}
-
-        """ index_to_word = ["UNK"]
-        train["sentences"], train["sentiments"], word_to_index, index_to_word, labels_count = DataPrep.load_sentiment_data("../data/sentiment/trainsentence_and_label.txt",index_to_word)
-        test["sentences"], test["sentiments"] , word_to_index, index_to_word, lc= DataPrep.load_sentiment_data("../data/sentiment/testsentence_and_label.txt",index_to_word,labels_count)
-        dev["sentences"], dev["sentiments"] , word_to_index, index_to_word, lc= DataPrep.load_sentiment_data("../data/sentiment/devsentence_and_label.txt",index_to_word,labels_count)
-
-        vocab_representation = WordEmbeddingLayer()
-        vocab_representation.load_embeddings_from_glove_file(filename="../data/glove.840B.300d.txt",filter=index_to_word)
-        vocab_representation.save_embedding("../data/finefiltered_glove.840B.300d")
-        vocab_representation.load_filtered_embedding("../data/finefiltered_glove.840B.300d")
-        vocab_representation.embed_and_save(sentences=train["sentences"],labels=train["sentiments"],path="../data/",name="finetrain",representation="glove.840B.300d")
-        vocab_representation.embed_and_save(sentences=dev["sentences"],labels=dev["sentiments"],path="../data/",name="finedev",representation="glove.840B.300d")
-        vocab_representation.embed_and_save(sentences=test["sentences"],labels=test["sentiments"],path="../data/",name="finetest",representation="glove.840B.300d")
-        """
-
-        embedded_train, train_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="finetrain",
-                                                                             representation="glove.840B.300d")
-        embedded_dev, dev_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="finedev",
-                                                                         representation="glove.840B.300d")
-        embedded_test, test_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="finetest",
-                                                                           representation="glove.840B.300d")
-
-
-
-        # train_labels = [np.asarray([(np.argmax(tl) + 1.00) / 3.0]) for tl in train_labels]
-        # dev_labels = [np.asarray([(np.argmax(dl) + 1.00) / 3.0]) for dl in dev_labels]
-        # embedded_train, train_labels, word_to_index, index_to_word, labels_count = DataPrep.load_one_hot_sentiment_data("../data/sentiment/trainsentence_and_label_binary.txt")
-        # embedded_dev, dev_labels= DataPrep.load_one_hot_sentiment_data_traind_vocabulary("../data/sentiment/devsentence_and_label_binary.txt",word_to_index,index_to_word,labels_count)
-        # self.test["sentences"], self.test["sentiments"]= DataPrep.load_one_hot_sentiment_data_traind_vocabulary("../../data/sentiment/testsentence_and_label_binary.txt",self.word_to_index, self.index_to_word,self.labels_count)
-
-
-        flstm = AttendedLSTM(input_dim=len(embedded_train[0][0]), output_dim=5, number_of_layers=1,
-                             hidden_dims=[hidden_dim], dropout_p=0.25, learning_rate=0.01)
-        flstm.build_model()
-
-        # train_labels[train_labels == 0] = -1
-        # dev_labels[dev_labels == 0] = -1
-        flstm.train(embedded_train, train_labels, embedded_test, test_labels)
-        flstm.save_model(modelfile)
 
 
     def save_model(self, modelfile):
@@ -259,19 +212,22 @@ class AnalyzeAttendedLSTM(object):
 
         n_of_layers = len(layers.keys())
 
-        flstm = FullyConnectedLSTM(input_dim=layers[0].input_dim, output_dim=layers[n_of_layers - 1].output_dim,
+        flstm = AttendedLSTM(input_dim=layers[0].input_dim, output_dim=layers[0].outer_output_dim,
                                    number_of_layers=n_of_layers, hidden_dims=[layers[0].output_dim])
         flstm.build_loaded_model(layers)
+
         embedded_test, test_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="test",
                                                                            representation="glove.840B.300d")
-        test_labels = [np.asarray([(np.argmax(tl) + 1.00) / 3.0]) for tl in test_labels]
-        print("Accuracy on test: ")
-        # flstm.test_dev(embedded_test,test_labels)
-        print("Accuracy on train: ")
-        embedded_train, train_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="train",
-                                                                             representation="glove.840B.300d")
-        train_labels = [np.asarray([(np.argmax(tl) + 1.00) / 3.0]) for tl in train_labels]
-        # flstm.test_dev(embedded_train, train_labels)
+
+
+        binary_embedded_test = []
+        binary_test_labels = []
+        for i in np.arange(len(embedded_test)):
+            if np.argmax(test_labels[i]) != 1:
+                binary_embedded_test.append(embedded_test[i])
+                binary_test_labels.append(np.eye(2)[np.argmax(test_labels[i]) // 2])
+
+        flstm.test_dev(binary_embedded_test, binary_test_labels)
         return flstm
 
     @staticmethod
@@ -325,104 +281,7 @@ class AnalyzeAttendedLSTM(object):
         ax[0].set_zlabel('Positive')
         plt.show()
 
-    @staticmethod
-    def show_sentiment_path_1D(sentences, vocab_representation, flstm):
 
-        fig1 = plt.figure()
-        fig1.suptitle("sentiment")
-        fig2 = plt.figure()
-        fig2.suptitle("output gate")
-        fig3 = plt.figure()
-        fig3.suptitle("forget gate")
-        fig4 = plt.figure()
-        fig4.suptitle("input gate")
-
-        ax = {}
-        ax[0] = fig1.add_subplot(111)
-        ax["output_gate"] = fig2.add_subplot(111)
-        ax["forget_gate"] = fig3.add_subplot(111)
-        ax["input_gate"] = fig4.add_subplot(111)
-        sentence_embedings = []
-        sentence_sentence = []
-        vis_predictions = []
-        get_visualization_values = theano.function([flstm.layers[0].input],
-                                                   [flstm.layers[0].output[-1], flstm.layers[0].hidden_state[-1]])
-        for i in np.arange(0, 2):  # len(sentences)):
-            sentence = sentences[i]
-            tokens = sentence.split()
-            embedded = vocab_representation.embed([tokens])[0]
-
-            predictions = []
-            labels = []
-            input_gates = []
-            output_gates = []
-            forget_gates = []
-
-            for i in np.arange(0, len(embedded)):
-                labels.append(tokens[i])
-
-                predictions.append(flstm.predict(np.asarray(embedded[0:i + 1], dtype=np.float32)).tolist())
-                gates = flstm.get_gates(np.asarray(embedded[0:i + 1], dtype=np.float32))
-                input_gates.append(np.dot(flstm.layers[0].output_params[0].get_value(), gates[1][-1].transpose()))
-                forget_gates.append(np.dot(flstm.layers[0].output_params[0].get_value(), gates[2][-1].transpose()))
-                output_gates.append(np.dot(flstm.layers[0].output_params[0].get_value(), gates[3][-1].transpose()))
-
-            vis_data = predictions
-
-            pred, embding = get_visualization_values(np.asarray(embedded[0:len(embedded)], dtype=np.float32))
-
-            sentence_embedings.append(embding)
-            sentence_sentence.append(' '.join(map(str, labels)))
-            vis_predictions.append((np.floor(pred[-1] * 3.0) + 1.00) / 3.00)
-
-            vis_x = [i for i in np.arange(len(vis_data))]
-            vis_y = [p[0] for p in vis_data]
-
-            ax[0].plot(vis_x, vis_y, linestyle='-')
-            ax[0].scatter(vis_x, vis_y, marker='o')
-            for label, x, y in zip(labels, vis_x, vis_y):
-                ax[0].text(x, y, label)
-
-            vis_data2 = output_gates
-
-            vis_x2 = [i for i in np.arange(len(vis_data2))]
-            vis_y2 = [p[0] for p in vis_data2]
-            ax["output_gate"].plot(vis_x2, vis_y2, linestyle='-')
-            ax["output_gate"].scatter(vis_x2, vis_y2, marker='o')
-            for label, x, y in zip(labels, vis_x2, vis_y2):
-                ax["output_gate"].text(x, y, label)
-
-            vis_data2 = forget_gates
-
-            vis_x2 = [i for i in np.arange(len(vis_data2))]
-            vis_y2 = [p[0] for p in vis_data2]
-            ax["forget_gate"].plot(vis_x2, vis_y2, linestyle='-')
-            ax["forget_gate"].scatter(vis_x2, vis_y2, marker='o')
-            for label, x, y in zip(labels, vis_x2, vis_y2):
-                ax["forget_gate"].text(x, y, label)
-
-            vis_data2 = input_gates
-
-            vis_x2 = [i for i in np.arange(len(vis_data2))]
-            vis_y2 = [p[0] for p in vis_data2]
-            ax["input_gate"].plot(vis_x2, vis_y2, linestyle='-')
-            ax["input_gate"].scatter(vis_x2, vis_y2, marker='o')
-            for label, x, y in zip(labels, vis_x2, vis_y2):
-                ax["input_gate"].text(x, y, label)
-
-        plt.show()
-
-        x = np.asarray(sentence_embedings)
-        n_samples, n_features = x.shape
-
-        print("Computing t-SNE embedding")
-        tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
-        X_tsne = tsne.fit_transform(x)
-
-        FullyConnectedLSTM.plot_embedding(X_tsne, np.asarray(vis_predictions), sentence_sentence,
-                                          "t-SNE embedding of the embedded digits")
-
-        plt.show()
 
     @staticmethod
     def plot_embedding(features, classes, labels, title=None):
@@ -455,66 +314,12 @@ class AnalyzeAttendedLSTM(object):
 
     @staticmethod
     def analyse():
-        flstm = FullyConnectedLSTM.load_model("test_model_diffdim.txt")
+        flstm = AnalyzeAttendedLSTM.load_model("test_model_attended_300.txt")
 
         vocab_representation = WordEmbeddingLayer()
         vocab_representation.load_filtered_embedding("../data/filtered_glove.840B.300d")
 
-        FullyConnectedLSTM.show_sentiment_path_1D(
-            ["I thought it should be bad , but it was good !", "I thought it should be good , but it was bad !"
-                , "they made a bad movie from a good story .", "they made a good movie from a bad story ."
-                , "although he is a good actor, his play is bad !"
-                , "although he is a bad actor, his play is good !"
-                , "the movie made by a good man is bad ."
-                , "the movie made by a bad man is good ."
-                , "the actor is good ."
-                , "the scenario is good ."
-                , "terrible !"
-                , "great !"
-                , "you are good."
-                , "the movie is bad !"
-                , "the actor is bad !"
-                , "the scenario is bad !"
-                , "he is a bad actor , but his play is good !"
-                , "the bad man made  a good movie ."
-                , "the ugly actor played well !"
-                , "the movie made by a good man is bad ."
-                , "the movie made by a bad man is good ."
-                , "the actor is bad, but he played good !"
-                , "he played good !"
-                , "he played bad !"
-                , "they made a bad movie from a good story !"
-                , "although he is a bad actor, he played good !"
-                , "the bad movie is made by me ."
-                , "the bad movie is made by me ."
-                , "the bad movie is made by a good man ."
-                , "the movie is made  by a good man ."
-                , "the movie made  by a good man is bad ."
-                , "the movie made  by a bad man is good ."
-                , "the bad man made  a good movie ."
-                , "the good man made  a bad movie ."
-                , "the good man is bad !"
-                , "the actor is bad !"
-                , "the actor played bad !"
-                , "the good actor played so bad !"
-                , "I thought it should be bad but it was good !"
-                , "I thought it should be bad, but it was good !"
-                , "the actor is normally bad, but he played good !"
-                , "the actor is bad, but he played good !"
-                , "the actor is normally bad !"
-                , "the actor is bad !"
-                , "he played good !"
-                , "his play is good !"
-                , "he is a bad actor, he played good !"
-                , "he is a bad actor, but he played good !"
-                , "he is a bad actor, but his play is good !"
-                , "he is a bad actor, but his play is good ! "
-                , "although he is a bad actor, he played good !"
-                , "although he is a bad actor, his play is good !"
-                , "although he is a bad actor, his act is good !"
-                , "although he is a bad actor, his play is good !"
-                , "they made a bad movie from a good story !"
-             ], vocab_representation, flstm)
+
         embed_sent = vocab_representation.embed(sentences=[["bad", "!"]])[0]
         print("bad! is: " + str(flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
 
@@ -678,8 +483,106 @@ class AnalyzeAttendedLSTM(object):
         print("they made a bad movie from a good story! is: " + str(
             flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
 
+        embed_sent = vocab_representation.embed(
+            sentences=[["they", "made", "a", "bad", "movie", "from", "a", "good", "story", "!"]])[0]
+        print("they made a bad movie from a good story! is: " + str(
+            flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
+
+        embed_sent = vocab_representation.embed(
+            sentences=[["good"]])[0]
+        print("good is: " + str(
+            flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
+
+        embed_sent = vocab_representation.embed(
+            sentences=[["not","good"]])[0]
+        print("not good is: " + str(
+            flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
+
+        embed_sent = vocab_representation.embed(
+            sentences=[["bad"]])[0]
+        print("bad is: " + str(
+            flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
+
+        embed_sent = vocab_representation.embed(
+            sentences=[["not","bad"]])[0]
+        print("not bad is: " + str(
+            flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
+
+        sentences = ["I thought it should be bad , but it was good !", "I thought it should be good , but it was bad !"
+            , "they made a bad movie from a good story .", "they made a good movie from a bad story ."
+            , "although he is a good actor, his play is bad !"
+            , "although he is a bad actor, his play is good !"
+            , "the movie made by a good man is bad ."
+            , "the movie made by a bad man is good ."
+            , "the actor is good ."
+            , "the scenario is good ."
+            , "terrible !"
+            , "great !"
+            , "you are good."
+            , "the movie is bad !"
+            , "the actor is bad !"
+            , "the scenario is bad !"
+            , "he is a bad actor , but his play is good !"
+            , "the bad man made  a good movie ."
+            , "the ugly actor played well !"
+            , "the movie made by a good man is bad ."
+            , "the movie made by a bad man is good ."
+            , "the actor is bad, but he played good !"
+            , "he played good !"
+            , "he played bad !"
+            , "they made a bad movie from a good story !"
+            , "although he is a bad actor, he played good !"
+            , "the bad movie is made by me ."
+            , "the bad movie is made by me ."
+            , "the bad movie is made by a good man ."
+            , "the movie is made  by a good man ."
+            , "the movie made  by a good man is bad ."
+            , "the movie made  by a bad man is good ."
+            , "the bad man made  a good movie ."
+            , "the good man made  a bad movie ."
+            , "the good man is bad !"
+            , "the actor is bad !"
+            , "the actor played bad !"
+            , "the good actor played so bad !"
+            , "I thought it should be bad but it was good !"
+            , "I thought it should be bad, but it was good !"
+            , "the actor is normally bad, but he played good !"
+            , "the actor is bad, but he played good !"
+            , "the actor is normally bad !"
+            , "the actor is bad !"
+            , "he played good !"
+            , "his play is good !"
+            , "he is a bad actor, he played good !"
+            , "he is a bad actor, but he played good !"
+            , "he is a bad actor, but his play is good !"
+            , "he is a bad actor, but his play is good ! "
+            , "although he is a bad actor, he played good !"
+            , "although he is a bad actor, his act is good !"
+            , "although he is a bad actor, his play is good !"]
+
+        predictions = []
+        sentence_embedings = []
+        for i in np.arange(len(sentences)):
+            sentence = sentences[i]
+            tokens = sentence.split()
+            embedded = vocab_representation.embed([tokens])[0]
+
+            predictions.append(np.argmax(flstm.predict(np.asarray(embedded, dtype=np.float32))))
+            sentence_embedings.append(flstm.get_embeding(np.asarray(embedded, dtype=np.float32))[-1])
+
+        print("Computing t-SNE embedding")
+        x = np.asarray(sentence_embedings)
+        print(x.shape)
+        tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
+        X_tsne = tsne.fit_transform(x)
+
+        AnalyzeAttendedLSTM.plot_embedding(X_tsne, np.asarray(predictions), sentences,
+                                          "t-SNE embedding of the embedded digits")
+
+        plt.show()
+
 
 if __name__ == '__main__':
     #AttendedLSTM.train_finegrained_glove_wordembedding(300, "finetest_model.txt")
     #AttendedLSTM.train_1layer_glove_wordembedding(300, "test_model_attentionLess.txt")
-    AttendedLSTM.analyse()
+    AnalyzeAttendedLSTM.analyse()
