@@ -560,7 +560,19 @@ class AnalyzeAttendedLSTM(object):
             , "although he is a bad actor, his act is good !"
             , "although he is a bad actor, his play is good !"]
 
-        predictions = []
+        embedded_test, test_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="test", representation="glove.840B.300d")
+        with open("../data/sentiment/testsentence_and_label_binary.txt", 'r') as filedata:
+            data = filedata.readlines()
+
+        binary_embedded_test = []
+        binary_test_labels = []
+        for i in np.arange(len(embedded_test)):
+            if np.argmax(test_labels[i]) != 1:
+                binary_embedded_test.append(embedded_test[i])
+                binary_test_labels.append(np.argmax(flstm.predict(np.asarray(embedded_test[i], dtype=np.float32))))
+                sentences.append(data[i])
+
+        """predictions = []
         sentence_embedings = []
         for i in np.arange(len(sentences)):
             sentence = sentences[i]
@@ -569,14 +581,14 @@ class AnalyzeAttendedLSTM(object):
 
             predictions.append(np.argmax(flstm.predict(np.asarray(embedded, dtype=np.float32))))
             sentence_embedings.append(flstm.get_embeding(np.asarray(embedded, dtype=np.float32))[-1])
-
+        """
         print("Computing t-SNE embedding")
-        x = np.asarray(sentence_embedings)
+        x = np.asarray(binary_embedded_test)
         print(x.shape)
         tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
         X_tsne = tsne.fit_transform(x)
 
-        AnalyzeAttendedLSTM.plot_embedding(X_tsne, np.asarray(predictions), sentences,
+        AnalyzeAttendedLSTM.plot_embedding(X_tsne, np.asarray(binary_test_labels), sentences,
                                           "t-SNE embedding of the embedded digits")
 
         plt.show()
