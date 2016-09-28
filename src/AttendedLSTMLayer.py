@@ -5,7 +5,7 @@ import numpy as np
 
 class AttendedLSTMLayer(object):
 
-    def __init__(self,random_state,input,input_dim,output_dim,outer_output_dim,bptt_truncate=-1,layer_id="_0"):
+    def __init__(self,random_state,input,input_dim,output_dim,outer_output_dim,bptt_truncate=-1,drop_rate=0.0,layer_id="_0"):
         self.input = input
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -14,28 +14,35 @@ class AttendedLSTMLayer(object):
         self.layer_id = layer_id
         self.initialize_params()
         self.bptt_truncate = bptt_truncate
+        self.dropout_rate = drop_rate
 
+        def D(x):
+            if self.dropout_rate == 0:
+                return x
+            else:
+                retain_prob = 1 - self.dropout_rate
+                return x * np.random.binomial(1, retain_prob, self.output_dim).astype(dtype=np.float32)
 
 
         def forward_step(x_t, prev_state, prev_content, prev_state_2, prev_content_2):
-            input_gate = T.nnet.hard_sigmoid(T.dot(( self.U_input),x_t) + T.dot(self.W_input,prev_state) + self.bias_input)
-            forget_gate = T.nnet.hard_sigmoid(T.dot(( self.U_forget),x_t) + T.dot(self.W_forget,prev_state)+ self.bias_forget)
-            output_gate = T.nnet.hard_sigmoid(T.dot((self.U_output),x_t) + T.dot(self.W_output,prev_state)+ self.bias_output)
+            input_gate = T.nnet.hard_sigmoid(D(T.dot(( self.U_input),x_t)) + T.dot(self.W_input,prev_state) + self.bias_input)
+            forget_gate = T.nnet.hard_sigmoid(D(T.dot(( self.U_forget),x_t)) + T.dot(self.W_forget,prev_state)+ self.bias_forget)
+            output_gate = T.nnet.hard_sigmoid(D(T.dot((self.U_output),x_t)) + T.dot(self.W_output,prev_state)+ self.bias_output)
 
 
 
-            stabilized_input = T.tanh(T.dot((self.U),x_t) + T.dot(self.W,prev_state) + self.bias)
+            stabilized_input = T.tanh(D(T.dot((self.U),x_t)) + T.dot(self.W,prev_state) + self.bias)
             c = forget_gate * prev_content + input_gate * stabilized_input
             s1 = output_gate * T.tanh(c)
 
             input_gate_2 = T.nnet.hard_sigmoid(
-                T.dot((self.U_input_2), s1) + T.dot(self.W_input_2, prev_state_2) + self.bias_input_2)
+                D(T.dot((self.U_input_2), s1)) + T.dot(self.W_input_2, prev_state_2) + self.bias_input_2)
             forget_gate_2 = T.nnet.hard_sigmoid(
-                T.dot((self.U_forget_2), s1) + T.dot(self.W_forget_2, prev_state_2) + self.bias_forget_2)
+                D(T.dot((self.U_forget_2), s1)) + T.dot(self.W_forget_2, prev_state_2) + self.bias_forget_2)
             output_gate_2 = T.nnet.hard_sigmoid(
-                T.dot((self.U_output_2), s1) + T.dot(self.W_output_2, prev_state_2) + self.bias_output_2)
+                D(T.dot((self.U_output_2), s1)) + T.dot(self.W_output_2, prev_state_2) + self.bias_output_2)
 
-            stabilized_input_2 = T.tanh(T.dot((self.U_2), s1) + T.dot(self.W_2, prev_state_2) + self.bias_2)
+            stabilized_input_2 = T.tanh(D(T.dot((self.U_2), s1)) + T.dot(self.W_2, prev_state_2) + self.bias_2)
 
             c2 = forget_gate_2 * prev_content_2 + input_gate_2 * stabilized_input_2
 
