@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../LSTM/.idea/LSTM.iml" filepath="$PROJECT_DIR$/../LSTM/.idea/LSTM.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/LSTMAttentionModel.iml" filepath="$PROJECT_DIR$/.idea/LSTMAttentionModel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../LanguageEvolutionFramework/.idea/LanguageEvolutionFramework.iml" filepath="$PROJECT_DIR$/../LanguageEvolutionFramework/.idea/LanguageEvolutionFramework.iml" />
       <module fileurl="file://$PROJECT_DIR$/../Util/.idea/Util.iml" filepath="$PROJECT_DIR$/../Util/.idea/Util.iml" />
     </modules>
   </component>

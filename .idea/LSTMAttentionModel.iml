@@ -6,5 +6,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="LSTM" />
     <orderEntry type="module" module-name="Util" />
+    <orderEntry type="module" module-name="LanguageEvolutionFramework" />
   </component>
 </module>
