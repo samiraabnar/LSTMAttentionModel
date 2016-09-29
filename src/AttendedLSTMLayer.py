@@ -3,9 +3,11 @@ import theano.tensor as T
 import numpy as np
 
 
+from theanolm.matrixfunctions import orthogonal_weight
+
 class AttendedLSTMLayer(object):
 
-    def __init__(self,random_state,input,input_dim,output_dim,outer_output_dim,bptt_truncate=-1,layer_id="_0"):
+    def __init__(self,random_state,input,input_dim,output_dim,outer_output_dim,bptt_truncate=-1,drop_rate=0.0,layer_id="_0"):
         self.input = input
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -14,28 +16,35 @@ class AttendedLSTMLayer(object):
         self.layer_id = layer_id
         self.initialize_params()
         self.bptt_truncate = bptt_truncate
+        self.dropout_rate = drop_rate
 
+        def D(x):
+            if self.dropout_rate == 0:
+                return x
+            else:
+                retain_prob = 1 - self.dropout_rate
+                return x * np.random.binomial(1, retain_prob, self.output_dim).astype(dtype=np.float32)
 
 
         def forward_step(x_t, prev_state, prev_content, prev_state_2, prev_content_2):
-            input_gate = T.nnet.hard_sigmoid(T.dot(( self.U_input),x_t) + T.dot(self.W_input,prev_state) + self.bias_input)
-            forget_gate = T.nnet.hard_sigmoid(T.dot(( self.U_forget),x_t) + T.dot(self.W_forget,prev_state)+ self.bias_forget)
-            output_gate = T.nnet.hard_sigmoid(T.dot((self.U_output),x_t) + T.dot(self.W_output,prev_state)+ self.bias_output)
+            input_gate = T.nnet.hard_sigmoid(D(T.dot(( self.U_input),x_t)) + T.dot(self.W_input,prev_state) + self.bias_input)
+            forget_gate = T.nnet.hard_sigmoid(D(T.dot(( self.U_forget),x_t)) + T.dot(self.W_forget,prev_state)+ self.bias_forget)
+            output_gate = T.nnet.hard_sigmoid(D(T.dot((self.U_output),x_t)) + T.dot(self.W_output,prev_state)+ self.bias_output)
 
 
 
-            stabilized_input = T.tanh(T.dot((self.U),x_t) + T.dot(self.W,prev_state) + self.bias)
+            stabilized_input = T.tanh(D(T.dot((self.U),x_t)) + T.dot(self.W,prev_state) + self.bias)
             c = forget_gate * prev_content + input_gate * stabilized_input
             s1 = output_gate * T.tanh(c)
 
             input_gate_2 = T.nnet.hard_sigmoid(
-                T.dot((self.U_input_2), s1) + T.dot(self.W_input_2, prev_state_2) + self.bias_input_2)
+                D(T.dot((self.U_input_2), s1)) + T.dot(self.W_input_2, prev_state_2) + self.bias_input_2)
             forget_gate_2 = T.nnet.hard_sigmoid(
-                T.dot((self.U_forget_2), s1) + T.dot(self.W_forget_2, prev_state_2) + self.bias_forget_2)
+                D(T.dot((self.U_forget_2), s1)) + T.dot(self.W_forget_2, prev_state_2) + self.bias_forget_2)
             output_gate_2 = T.nnet.hard_sigmoid(
-                T.dot((self.U_output_2), s1) + T.dot(self.W_output_2, prev_state_2) + self.bias_output_2)
+                D(T.dot((self.U_output_2), s1)) + T.dot(self.W_output_2, prev_state_2) + self.bias_output_2)
 
-            stabilized_input_2 = T.tanh(T.dot((self.U_2), s1) + T.dot(self.W_2, prev_state_2) + self.bias_2)
+            stabilized_input_2 = T.tanh(D(T.dot((self.U_2), s1)) + T.dot(self.W_2, prev_state_2) + self.bias_2)
 
             c2 = forget_gate_2 * prev_content_2 + input_gate_2 * stabilized_input_2
 
@@ -58,54 +67,62 @@ class AttendedLSTMLayer(object):
                           ])
 
     def initialize_params(self):
-        U_input = np.asarray(
+        U_input = orthogonal_weight(self.output_dim,self.input_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      (self.output_dim, self.input_dim))
             , dtype=theano.config.floatX)
-
-        U_forget = np.asarray(
+        """
+        U_forget = orthogonal_weight(self.output_dim, self.input_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      (self.output_dim, self.input_dim))
             , dtype=theano.config.floatX)
-
-        U_output = np.asarray(
+        """
+        U_output = orthogonal_weight(self.output_dim, self.input_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      (self.output_dim, self.input_dim))
             , dtype=theano.config.floatX)
-
-        W_input = np.asarray(
+        """
+        W_input = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      (self.output_dim, self.output_dim))
             , dtype=theano.config.floatX)
-
-        W_forget = np.asarray(
+        """
+        W_forget = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      (self.output_dim, self.output_dim))
             , dtype=theano.config.floatX)
-
-        W_output = np.asarray(
+        """
+        W_output = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      (self.output_dim, self.output_dim))
             , dtype=theano.config.floatX)
-
-        U = np.asarray(
+        """
+        U = orthogonal_weight(self.output_dim, self.input_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.input_dim + self.output_dim)),
                                      (self.output_dim, self.input_dim))
             , dtype=theano.config.floatX)
-
-        W = np.asarray(
+        """
+        W = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                      (self.output_dim, self.output_dim))
             , dtype=theano.config.floatX)
-
+        """
         bias_input = np.zeros(self.output_dim, dtype=theano.config.floatX)
         bias_forget = np.zeros(self.output_dim, dtype=theano.config.floatX)
         bias_output = np.zeros(self.output_dim, dtype=theano.config.floatX)
@@ -127,56 +144,65 @@ class AttendedLSTMLayer(object):
         self.U_forget = theano.shared(value=U_forget, name="U_forget" + self.layer_id, borrow="True")
         self.bias_forget = theano.shared(value=bias_forget, name="bias_forget" + self.layer_id, borrow="True")
 
-        U_input_2 = np.asarray(
+        U_input_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
+            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      (self.output_dim,self.output_dim))
+            , dtype=theano.config.floatX)
+        """
+        U_forget_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
+            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      (self.output_dim,self.output_dim))
+            , dtype=theano.config.floatX)
+        """
+        U_output_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
+            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      (self.output_dim,self.output_dim))
+            , dtype=theano.config.floatX)
+        """
+
+        W_input_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
+            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      (self.output_dim,self.output_dim))
+            , dtype=theano.config.floatX)
+        """
+
+        W_forget_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
+            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
+                                      (self.output_dim,self.output_dim))
+            , dtype=theano.config.floatX)
+        """
+        W_output_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       (self.output_dim,self.output_dim))
             , dtype=theano.config.floatX)
 
-        U_forget_2 = np.asarray(
+        """
+        U_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       (self.output_dim,self.output_dim))
             , dtype=theano.config.floatX)
-
-        U_output_2 = np.asarray(
+        """
+        W_2 = orthogonal_weight(self.output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       (self.output_dim,self.output_dim))
             , dtype=theano.config.floatX)
-
-
-        W_input_2 = np.asarray(
-            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      (self.output_dim,self.output_dim))
-            , dtype=theano.config.floatX)
-
-        W_forget_2 = np.asarray(
-            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      (self.output_dim,self.output_dim))
-            , dtype=theano.config.floatX)
-
-        W_output_2 = np.asarray(
-            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      (self.output_dim,self.output_dim))
-            , dtype=theano.config.floatX)
-
-
-        U_2 = np.asarray(
-            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      (self.output_dim,self.output_dim))
-            , dtype=theano.config.floatX)
-
-        W_2 = np.asarray(
-            self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      np.sqrt(6.0 / (self.output_dim + self.output_dim)),
-                                      (self.output_dim,self.output_dim))
-            , dtype=theano.config.floatX)
-
+        """
         bias_input_2 = np.zeros(self.output_dim, dtype=theano.config.floatX)
         bias_forget_2 = np.zeros(self.output_dim, dtype=theano.config.floatX)
         bias_output_2 = np.zeros(self.output_dim, dtype=theano.config.floatX)
@@ -199,12 +225,13 @@ class AttendedLSTMLayer(object):
         self.bias_forget_2 = theano.shared(value=bias_forget_2, name="bias_forget"+self.layer_id, borrow="True")
 
 
-        O_w = np.asarray(
+        O_w = orthogonal_weight(self.outer_output_dim, self.output_dim)
+        """np.asarray(
             self.random_state.normal(-np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       np.sqrt(6.0 / (self.output_dim + self.output_dim)),
                                       (self.outer_output_dim,self.output_dim))
             , dtype=theano.config.floatX)
-
+        """
         O_bias = np.zeros(self.outer_output_dim, dtype=theano.config.floatX)
 
         self.O_w = theano.shared(value=O_w, name="O_w"+self.layer_id, borrow="True")
