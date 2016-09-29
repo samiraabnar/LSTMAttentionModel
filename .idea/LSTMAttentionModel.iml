@@ -6,5 +6,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="LSTM" />
     <orderEntry type="module" module-name="Util" />
+    <orderEntry type="module" module-name="sequence_gan" />
+    <orderEntry type="module" module-name="LanguageEvolutionFramework" />
+    <orderEntry type="module" module-name="EACL2017" />
   </component>
 </module>
