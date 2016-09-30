@@ -290,7 +290,7 @@ class AnalyzeAttendedLSTM(object):
 
         plt.figure()
         ax = plt.subplot(111)
-        for i in np.arange(0,features.shape[0],1):
+        for i in range(features.shape[0]):
             plt.text(features[i, 0], features[i, 1], str(labels[i]),
                      color=plt.cm.Set1(float(classes[i]) / 10),
                      fontdict={'weight': 'bold', 'size': 9})
@@ -508,7 +508,7 @@ class AnalyzeAttendedLSTM(object):
         print("not bad is: " + str(
             flstm.predict(np.asarray(embed_sent, dtype=np.float32))))
 
-        sentences_2 = ["I thought it should be bad , but it was good !", "I thought it should be good , but it was bad !"
+        sentences = ["I thought it should be bad , but it was good !", "I thought it should be good , but it was bad !"
             , "they made a bad movie from a good story .", "they made a good movie from a bad story ."
             , "although he is a good actor, his play is bad !"
             , "although he is a bad actor, his play is good !"
@@ -560,40 +560,35 @@ class AnalyzeAttendedLSTM(object):
             , "although he is a bad actor, his act is good !"
             , "although he is a bad actor, his play is good !"]
 
-        sentences_2 = ["good", "bad", "not good", "not bad", "nice", "not nice", "happy", "not happy", "boring", "not boring", "interesting", "not interesting"
-                       "good or bad", "nice or ugly", "good not bad", "nice not ugly"]
-
         embedded_test, test_labels = WordEmbeddingLayer.load_embedded_data(path="../data/", name="test", representation="glove.840B.300d")
         with open("../data/sentiment/testsentence_and_label_binary.txt", 'r') as filedata:
             data = filedata.readlines()
 
-
-        sentence_embedings = []
+        binary_embedded_test = []
         binary_test_labels = []
-        sentences = []
         for i in np.arange(len(embedded_test)):
             if np.argmax(test_labels[i]) != 1:
+                binary_embedded_test.append(embedded_test[i])
                 binary_test_labels.append(np.argmax(flstm.predict(np.asarray(embedded_test[i], dtype=np.float32))))
                 sentences.append(data[i])
-                sentence_embedings.append(flstm.get_embeding(np.asarray(embedded_test[i], dtype=np.float32))[-1])
 
-        for i in np.arange(len(sentences_2)):
-            sentence = sentences_2[i]
-            sentences.append(sentence)
-
+        """predictions = []
+        sentence_embedings = []
+        for i in np.arange(len(sentences)):
+            sentence = sentences[i]
             tokens = sentence.split()
             embedded = vocab_representation.embed([tokens])[0]
 
-            binary_test_labels.append(np.argmax(flstm.predict(np.asarray(embedded, dtype=np.float32))))
+            predictions.append(np.argmax(flstm.predict(np.asarray(embedded, dtype=np.float32))))
             sentence_embedings.append(flstm.get_embeding(np.asarray(embedded, dtype=np.float32))[-1])
-
+        """
         print("Computing t-SNE embedding")
-        x = np.asarray(sentence_embedings)
+        x = np.asarray(binary_embedded_test)
         print(x.shape)
         tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
         X_tsne = tsne.fit_transform(x)
 
-        AnalyzeAttendedLSTM.plot_embedding(X_tsne[x.shape[0]-len(sentences_2):], np.asarray(binary_test_labels[x.shape[0]-len(sentences_2):]), sentences[x.shape[0]-len(sentences_2):],
+        AnalyzeAttendedLSTM.plot_embedding(X_tsne, np.asarray(binary_test_labels), sentences,
                                           "t-SNE embedding of the embedded digits")
 
         plt.show()

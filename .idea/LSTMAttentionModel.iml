@@ -2,16 +2,7 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 3.5.1 (/Library/Frameworks/Python.framework/Versions/3.5/bin/python3.5)" jdkType="Python SDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="LSTM" />
-    <orderEntry type="module" module-name="Util" />
-<<<<<<< HEAD
-    <orderEntry type="module" module-name="sequence_gan" />
-    <orderEntry type="module" module-name="LanguageEvolutionFramework" />
-    <orderEntry type="module" module-name="EACL2017" />
-=======
-    <orderEntry type="module" module-name="LanguageEvolutionFramework" />
->>>>>>> 275b758de697172408eb4bc0a67e817bf46647d6
   </component>
 </module>

@@ -2,12 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../EACL2017/.idea/EACL2017.iml" filepath="$PROJECT_DIR$/../EACL2017/.idea/EACL2017.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../LSTM/.idea/LSTM.iml" filepath="$PROJECT_DIR$/../LSTM/.idea/LSTM.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/LSTMAttentionModel.iml" filepath="$PROJECT_DIR$/.idea/LSTMAttentionModel.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../LanguageEvolutionFramework/.idea/LanguageEvolutionFramework.iml" filepath="$PROJECT_DIR$/../LanguageEvolutionFramework/.idea/LanguageEvolutionFramework.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../Util/.idea/Util.iml" filepath="$PROJECT_DIR$/../Util/.idea/Util.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../sequence_gan/.idea/sequence_gan.iml" filepath="$PROJECT_DIR$/../sequence_gan/.idea/sequence_gan.iml" />
     </modules>
   </component>
 </project>
